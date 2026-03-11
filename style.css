@@ -1,0 +1,965 @@
+/* =========================================
+    1. VARIABLES & RESET
+    ========================================= */
+:root {
+    --hover-bg: rgba(128, 128, 128, 0.2);
+    --error-bg: rgba(255, 0, 0, 0.18);
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    display: flex;
+}
+
+fieldset {
+    border: none;
+    padding: 0;
+}
+
+legend {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+    /* Spacing between legend and checkboxes */
+}
+
+/* =========================================
+    2. LAYOUT & STRUCTURE
+    ========================================= */
+#app-container {
+    flex: 1;
+    /* Make this container take all available vertical space */
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    /* Left | Middle (flexible) | Right */
+    box-sizing: border-box;
+    overflow: hidden;
+    /* Prevent sidebars from causing page scroll */
+}
+
+/* --- SIDEBARS --- */
+#left-sidebar,
+#right-sidebar {
+    padding: 0 1rem;
+    overflow-y: auto;
+    /* Allow sidebars to scroll if content is long */
+    display: flex;
+    /* Enable flexbox for vertical sectioning */
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* preferred adaptive rule when color-mix is supported */
+@supports (background-color: color-mix(in srgb, canvas 50%, black 10%)) {
+
+    #left-sidebar,
+    #right-sidebar {
+        /* Mix the system canvas with a little black to make sidebars darker */
+        background-color: color-mix(in srgb, canvas 82%, black 18%);
+        -webkit-backdrop-filter: blur(6px);
+
+        backdrop-filter: blur(6px);
+        color: canvasText;
+        /* use system text color */
+    }
+}
+
+@media (min-width: 1101px) {
+
+    #left-sidebar,
+    #right-sidebar {
+        /* This is the stronger inset shadow */
+        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* --- MAIN CONTENT (MIDDLE COLUMN) --- */
+main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    /* Prevents flexbox overflow issues */
+    position: relative;
+    /* Consistent padding for all screen sizes */
+    box-sizing: border-box;
+}
+
+#main-top {
+    flex: 2;
+    /* Takes 2/3 of the space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* This centers the #interactive-area in the top 3/4 */
+    min-height: 0;
+    /* Flexbox shrink fix */
+}
+
+#main-bottom {
+    flex: 1;
+    /* Takes 1/3 of the space */
+    display: flex;
+    align-items: flex-end;
+    /* Vertically centers the visual in its 1/4 space */
+    justify-content: center;
+    min-height: 0;
+    /* Flexbox shrink fix */
+    width: 100%;
+    margin-top: 1rem;
+}
+
+/* =========================================
+    3. UI COMPONENTS
+    ========================================= */
+
+/* --- UTILITIES (Must be first so they can be overridden) --- */
+.hidden {
+    display: none !important;
+}
+
+/* --- ICON BUTTONS --- */
+.icon-btn {
+    /* Use Flexbox for perfect centering */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Remove the extra space from line-height */
+    line-height: 1;
+
+    /* Ensure a square shape by setting equal width and height */
+    width: 36px;
+    /* Example size: 24px icon + 12px padding */
+    height: 36px;
+    /* Example size: 24px icon + 12px padding */
+
+    /* Keep other essential styles */
+    padding: 6px;
+    /* Adjust padding as needed */
+    box-sizing: border-box;
+    /* Include padding in the total size */
+    border: none;
+    background: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.icon-btn:disabled {
+    /* Let mouse events fall through to the container so the correct tooltip shows */
+    pointer-events: none;
+
+    background-color: transparent;
+    opacity: 0.5;
+}
+
+/* Ensure the hover effect only happens when NOT disabled */
+.icon-btn:not(:disabled):hover {
+    background-color: var(--hover-bg);
+}
+
+.icon {
+    flex-shrink: 0;
+}
+
+/* --- SIDEBAR ELEMENTS --- */
+#left-sidebar header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* Add space between the text and the icon */
+    font-size: 2rem;
+}
+
+#left-sidebar header h1 a {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    line-height: 1;
+}
+
+#tagline {
+    margin: -1.5rem 0 0.3rem 0;
+    /* Pulls it up under the title */
+    opacity: 0.8;
+    font-size: 0.9rem;
+}
+
+/* --- Settings & Options in Left Sidebar --- */
+#checkbox-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+}
+
+.disabled-feature {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+details summary h3 {
+    display: inline;
+}
+
+#left-sidebar section ul {
+    list-style: none;
+    padding: 0;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    opacity: 0.8;
+}
+
+#left-sidebar section ul li {
+    line-height: 1.5;
+}
+
+#left-sidebar section ul a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+#left-sidebar section ul a:hover {
+    text-decoration: none;
+}
+
+code {
+    /* Adaptive background: Mixes the theme's text color (10%) into the background */
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+
+    /* The Frosted Glass Effect */
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+
+    /* Border to make it pop slightly */
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+
+    /* Layout & Typography */
+    padding: 0 3px;
+    border-radius: 3px;
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    font-size: 0.9rem;
+    opacity: 0.5;
+}
+
+/* --- RIGHT SIDEBAR (SOURCE LIST) --- */
+#right-sidebar h2 {
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.sidebar-main-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.title-annotation {
+    font-size: 0.75rem;
+    /* Much smaller than the main title */
+    font-weight: 400;
+    /* Normal weight (not bold like the H3) */
+    opacity: 0.6;
+    /* Faded text for subtle contrast */
+    margin-left: 0.4rem;
+    /* Small gap between "Preset" and this text */
+    vertical-align: middle;
+    /* Aligns it nicely with the text */
+
+    /* Wrap it to the next line on very small screens */
+    display: inline-block;
+}
+
+/* This makes the custom section take remaining space */
+#custom-section {
+    flex: 1;
+    min-height: 0;
+    /* Important for flexbox shrinking */
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-subsection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Make the file list area grow to fill available space */
+#custom-section .custom-subsection:first-of-type {
+    flex-grow: 1;
+    min-height: 0;
+    /* Necessary for proper flex shrinking */
+}
+
+/* Ensure the paste section does not grow */
+#custom-section .custom-subsection:last-of-type {
+    flex-shrink: 0;
+}
+
+/* Make the file list scrollable if it gets long */
+#preset-sources-list,
+#custom-sources-list {
+    overflow-y: auto;
+    /* Fill the available vertical space */
+    flex-grow: 1;
+    /* Enable flexbox to control child alignment */
+    display: flex;
+    flex-direction: column;
+}
+
+#custom-list-placeholder {
+    color: #888;
+    font-style: italic;
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 1rem 0;
+    user-select: none;
+    /* Makes text non-selectable, like a placeholder */
+    /* This magic property centers the item vertically and horizontally in the flex container */
+    margin: auto;
+    line-height: 1.5;
+}
+
+.source-item {
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* Prevents the items from being squished by Flexbox */
+    flex-shrink: 0;
+}
+
+.source-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.source-item.active {
+    background-color: rgba(0, 120, 215, 0.8);
+    color: white;
+}
+
+#file-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+}
+
+.file-button {
+    /* Reset browser-specific styling */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    /* Consistent Layout & Sizing */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    border-radius: 4px;
+
+    /* Consistent Typography */
+    font-family: inherit;
+    /* Use the same font as the rest of the page */
+    font-size: 0.9rem;
+
+    /* Consistent Colors & Interaction */
+    background-color: inherit;
+    color: buttontext;
+    /* cursor: pointer; */
+    text-decoration: none;
+    /* Important for labels used as links/buttons */
+}
+
+.file-button:hover {
+    outline: 2px auto Highlight;
+    outline-color: -webkit-focus-ring-color;
+    outline-offset: 2px;
+}
+
+#custom-text {
+    width: 100%;
+    box-sizing: border-box;
+    /* The textarea will naturally fill the space in its flex container */
+}
+
+#custom-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.language-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    justify-content: space-between;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+/* --- COLLAPSIBLE SIDEBARS --- */
+/* NOTE: These must come AFTER .icon-btn to override its display property */
+.sidebar-toggle-btn {
+    display: none;
+    /* Hidden on desktop by default */
+    position: fixed;
+    top: 1rem;
+    z-index: 1001;
+    /* Must be on top of everything */
+    color: canvasText;
+}
+
+#left-sidebar-toggle {
+    left: 1rem;
+}
+
+#right-sidebar-toggle {
+    right: 1rem;
+}
+
+#overlay-backdrop {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    /* Below sidebars, above main content */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#overlay-backdrop.is-visible {
+    display: block;
+    opacity: 1;
+}
+
+/* =========================================
+    4. MAIN INTERACTIVE AREA
+    ========================================= */
+
+/* --- HINTS --- */
+.hint-row {
+    position: absolute;
+    /* Takes the element out of the layout flow */
+    top: 1rem;
+    /* Position it relative to the parent's padding */
+    left: 1rem;
+    /* Span the full width inside the padding */
+    right: 1rem;
+}
+
+.hint-list {
+    list-style: none;
+    text-align: right;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
+    color: #666;
+    width: 100%;
+}
+
+.hint-list li {
+    line-height: 1.5;
+}
+
+/* --- TELEPROMPTER & RELATED STYLES --- */
+#interactive-area {
+    display: flex;
+    align-items: center;
+    /* This vertically centers all three columns */
+    gap: 0.5rem;
+    margin: 1rem;
+}
+
+#teleprompter {
+    flex: 1;
+    /* This tells the teleprompter to grow and take all available space. */
+    min-width: 0;
+    /* A flexbox trick to prevent text overflow issues. */
+    height: 280px;
+    /* Make it fill the parent's height. */
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 1) 90%, rgba(0, 0, 0, 0) 100%);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 1) 90%, rgba(0, 0, 0, 0) 100%);
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+}
+
+#lines-wrapper {
+    transition: transform 0.32s cubic-bezier(.2, .8, .2, 1);
+    will-change: transform;
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+}
+
+.centered-wrapper {
+    transform: none !important;
+    /* Override the teleprompter's scroll position */
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.line {
+    margin: .35rem 0;
+    white-space: pre-wrap;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    min-height: 1.6em;
+}
+
+.line .textSpan {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.line.faded {
+    opacity: .45;
+    color: #666;
+}
+
+.line.active {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.line.active .textSpan {
+    flex: 1 1 auto;
+}
+
+#autopilot-container,
+#input-column {
+    flex-shrink: 0;
+    /* Prevents the 'clamps' from being squished. */
+}
+
+#input-column {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.input-group {
+    position: static;
+    transform: none;
+}
+
+.input-row {
+    display: flex;
+    align-items: stretch;
+    /* Forces Input and Button to be exact same height */
+    width: 100%;
+}
+
+.tele-input {
+    font-family: monospace;
+    font-size: large;
+    padding: .45rem .5rem;
+    margin: 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    text-align: right;
+    direction: ltr;
+    unicode-bidi: bidi-override;
+}
+
+.tele-input::-webkit-input-placeholder {
+    text-align: right;
+}
+
+.tele-next {
+    font-size: large;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    height: auto;
+    min-width: 2.2em;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    /* Modern "Ghost" Button Style */
+    background-color: transparent;
+    color: inherit;
+    opacity: 0.5;
+    /* Subtle by default */
+    transition: all 0.2s ease;
+}
+
+.tele-next:hover {
+    opacity: 1;
+}
+
+#result {
+    position: absolute;
+    margin: 0.5rem 0.1rem;
+    font-weight: bold;
+    font-size: small;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#main-bottom details {
+    width: 100%;
+    position: relative;
+}
+
+#main-bottom details summary {
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    opacity: 0.7;
+    list-style: none;
+    display: flex;
+    /* Use flex to align text and arrow */
+    justify-content: space-between;
+    align-items: center;
+}
+
+#main-bottom summary:hover {
+    opacity: 1;
+}
+
+/* Custom marker logic since we hid the default one */
+#main-bottom summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Custom arrow: Right pointing by default (Closed) */
+#main-bottom summary::before {
+    content: "▶";
+    font-size: 0.8em;
+    transition: transform 0.2s ease;
+    display: inline-block;
+    /* Required for transform to work */
+}
+
+/* Rotate to point Up when Open */
+#main-bottom details[open] summary::before {
+    transform: rotate(-90deg);
+}
+
+#main-bottom figure {
+    margin: 0;
+    /* Removes default browser margins */
+    padding: 0;
+    width: 100%;
+    /* Ensures it fills the details drawer */
+    position: absolute;
+    bottom: 100%;
+    /* Moves it 100% up from the bottom edge */
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Centers the image and caption */
+}
+
+#main-bottom img {
+    width: 100%;
+    max-height: 25vh;
+    object-fit: contain;
+    /* Keeps the aspect ratio perfect */
+    display: block;
+}
+
+#main-bottom figcaption {
+    font-size: small;
+    opacity: 0.8;
+
+    /* Add horizontal padding prevents touching edges */
+    padding: 0 1rem;
+    text-align: center;
+    /* Ensure it looks good if it wraps */
+    box-sizing: border-box;
+    /* Include padding in width calculation */
+}
+
+.caption-dark {
+    display: none;
+}
+
+.caption-light {
+    display: inline;
+}
+
+@media (prefers-color-scheme: dark) {
+    .caption-dark {
+        display: inline;
+    }
+
+    .caption-light {
+        display: none;
+    }
+}
+
+/* =========================================
+    5. VISUALS & ANIMATIONS
+    ========================================= */
+.wrong {
+    animation: wrongFlash 0.25s, shake 0.3s;
+}
+
+@keyframes wrongFlash {
+    from {
+        background-color: var(--error-bg);
+    }
+
+    to {
+        background-color: transparent;
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-4px);
+    }
+
+    75% {
+        transform: translateX(4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wrong {
+        animation: wrongFlash 0.25s;
+    }
+
+    /* No shake for sensitive users */
+}
+
+.perfect {
+    color: yellow;
+}
+
+.success {
+    color: green;
+}
+
+/* --- COMPLETION SCREEN --- */
+.completion-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    animation: fadeIn 0.4s ease-out;
+    color: canvasText;
+}
+
+.completion-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.completion-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.7;
+    margin-bottom: 2rem;
+}
+
+.completion-action {
+    font-size: 0.9rem;
+    opacity: 0.5;
+    margin-top: 1.5rem;
+    /* Add some space */
+
+    /* Add a subtle animation to invite interaction */
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- CONFEtti / EMOJI RAIN --- */
+.falling-item {
+    position: absolute;
+    /* Changed from fixed to absolute (relative to Main) */
+    top: -50px;
+    z-index: -1;
+    /* BEHIND the content -> Creates depth */
+    pointer-events: none;
+    /* Click-through so it doesn't block the button */
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    /* Stay at bottom (or remove via JS) */
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10%) rotate(0deg);
+        opacity: 0.8;
+        /* Start slightly visible */
+    }
+
+    10% {
+        opacity: 1;
+        /* Fade in fully at the top */
+    }
+
+    100% {
+        /* Fall well past the bottom so they don't vanish on screen */
+        transform: translateY(120vh) rotate(360deg);
+        opacity: 1;
+        /* Stay visible until they are gone */
+    }
+}
+
+/* =========================================
+    6. RESPONSIVE OVERRIDES (Must be last)
+    ========================================= */
+
+/* --- RESPONSIVE STYLES FOR NARROW SCREENS --- */
+@media (max-width: 1100px) {
+    #app-container {
+        /* Change to a single column layout */
+        grid-template-columns: 1fr;
+        padding: 0;
+        /* Remove padding to allow content to be full-width */
+    }
+
+    #left-sidebar,
+    #right-sidebar {
+        /* Take sidebars out of the grid flow and make them overlays */
+        position: fixed;
+        top: 0;
+        height: 100%;
+        width: 280px;
+        /* Give them a fixed width for the overlay */
+        z-index: 1000;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease-in-out;
+        box-sizing: border-box;
+        padding-top: 1.5rem;
+    }
+
+    /* Hide them off-screen by default */
+    #left-sidebar {
+        left: 0;
+        transform: translateX(-100%);
+    }
+
+    #right-sidebar {
+        right: 0;
+        transform: translateX(100%);
+    }
+
+    /* This class will be toggled by JS to show the sidebar */
+    #left-sidebar.is-overlay-visible,
+    #right-sidebar.is-overlay-visible {
+        transform: translateX(0);
+    }
+
+    /* NOW we show the buttons (Overrides display:none from above) */
+    .sidebar-toggle-btn {
+        display: block;
+    }
+
+    #left-sidebar header h1 {
+        justify-content: center;
+    }
+
+    #tagline,
+    .sidebar-footer {
+        text-align: center;
+    }
+
+    .hint-row {
+        display: none;
+    }
+}
+
+@media (max-width: 800px) {
+    #interactive-area {
+        flex-wrap: wrap;
+        /* Allow items to wrap to the next line */
+        justify-content: space-between;
+        /* Pushes wrapped items to the ends */
+        height: auto;
+        /* Let the height grow as needed */
+    }
+
+    #teleprompter {
+        flex-basis: 100%;
+        /* Force the teleprompter to take the full width, pushing the others down */
+        order: 1;
+        /* Ensure it comes first */
+        margin-bottom: 1rem;
+    }
+
+    #autopilot-container {
+        order: 2;
+        /* Autopilot comes second */
+    }
+
+    #input-column {
+        order: 3;
+        /* Input comes third */
+        height: auto;
+    }
+}

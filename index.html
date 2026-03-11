@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>Type Again</title>
+    <meta name="description"
+        content="The optimal tool to prepare for computer-based tests or make your typing flow—in any language. Open source, free, and processed locally.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <button class="sidebar-toggle-btn icon-btn" id="left-sidebar-toggle" type="button"
+        aria-label="Toggle settings sidebar">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path>
+        </svg>
+    </button>
+    <button class="sidebar-toggle-btn icon-btn" id="right-sidebar-toggle" type="button"
+        aria-label="Toggle sources sidebar">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path>
+        </svg>
+    </button>
+
+    <div id="app-container">
+        <aside id="left-sidebar">
+            <header>
+                <h1>
+                    Type Again
+                    <a href="https://github.com/JinMuYang/type-again" target="_blank" rel="noopener noreferrer"
+                        aria-label="View source code on GitHub">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"
+                            fill="currentColor">
+                            <path
+                                d="M12 1C5.923 1 1 5.923 1 12c0 4.867 3.149 8.979 7.521 10.436.55.096.756-.233.756-.522 0-.262-.013-1.128-.013-2.049-2.764.509-3.479-.674-3.699-1.292-.124-.317-.66-1.293-1.127-1.554-.385-.207-.936-.715-.014-.729.866-.014 1.485.797 1.691 1.128.99 1.663 2.571 1.196 3.204.907.096-.715.385-1.196.701-1.471-2.448-.275-5.005-1.224-5.005-5.432 0-1.196.426-2.186 1.128-2.956-.111-.275-.496-1.402.11-2.915 0 0 .921-.288 3.024 1.128a10.193 10.193 0 0 1 2.75-.371c.936 0 1.871.123 2.75.371 2.104-1.43 3.025-1.128 3.025-1.128.605 1.513.221 2.64.111 2.915.701.77 1.127 1.747 1.127 2.956 0 4.222-2.571 5.157-5.019 5.432.399.344.743 1.004.743 2.035 0 1.471-.014 2.654-.014 3.025 0 .289.206.632.756.522C19.851 20.979 23 16.854 23 12c0-6.077-4.922-11-11-11Z">
+                            </path>
+                        </svg>
+                    </a>
+                </h1>
+            </header>
+
+            <p id="tagline">
+                The optimal tool to prepare for computer-based tests or make your typing flow—in any language.
+            </p>
+
+            <fieldset>
+                <legend>Options</legend>
+                <div id="checkbox-group">
+                    <label><input type="checkbox" id="shuffle" checked> Shuffle</label>
+                    <label><input type="checkbox" id="word-revoke" checked> Revoke word if mistyped</label>
+                    <label><input type="checkbox" id="auto-next" checked> Auto-next on completion</label>
+                    <label><input type="checkbox" id="dictation"> Dictation</label>
+                </div>
+            </fieldset>
+            <details name="info">
+                <summary>
+                    <h3>Tips</h3>
+                </summary>
+                <section>
+                    <ul>
+                        <li>
+                            You may look up a word's definition by one tap or two clicks without leaving the
+                            page.
+                            <small>
+                                (<a href="https://support.apple.com/guide/mac-help/look-up-words-mchl3983326c/mac"
+                                    target="_blank" rel="noopener">macOS</a> |
+                                <a href="https://www.microsoft.com/en-us/edge/learning-center/how-to-use-dictionary"
+                                    target="_blank" rel="noopener">Windows</a>)
+                            </small>
+                        </li>
+                        <li>
+                            You may change the voice and characteristics, such as dialect and speed, for Dictation and
+                            Autopilot on this site in your system's text-to-speech (TTS) settings.
+                            <small>
+                                (<a href="https://support.apple.com/guide/mac-help/change-the-voice-your-mac-uses-to-speak-text-mchlp2290/mac"
+                                    target="_blank" rel="noopener">macOS</a> |
+                                <a href="https://support.microsoft.com/en-us/windows/chapter-7-customizing-narrator-ce950246-c915-0d44-9be6-fb474387a285"
+                                    target="_blank" rel="noopener">Windows</a> |
+                                <a href="https://support.apple.com/guide/ipad/hear-whats-on-the-screen-or-typed-ipad9a247097/ipados"
+                                    target="_blank" rel="noopener">iPadOS</a> |
+                                <a href="https://support.google.com/accessibility/android/answer/6006983"
+                                    target="_blank" rel="noopener">Android</a>)
+                            </small>
+                        </li>
+                        <li>
+                            You may (long) press the <strong>tab</strong> key to return focus to the input box.
+                        </li>
+                        <li>
+                            Do you know the difference between a hyphen <code>-</code>, an en dash <code>–</code>, and
+                            an em dash <code>—</code>?
+                        </li>
+                    </ul>
+                </section>
+            </details>
+            <details name="info" open>
+                <summary>
+                    <h3>Why Type Again?</h3>
+                </summary>
+                <section>
+                    <ul>
+                        <li>
+                            <strong>Force-correct your typing:</strong><br>
+                            Type right away, in the right way, anytime, anywhere. Sharpen the key skill in this digital
+                            world.
+                        </li>
+                        <li>
+                            <strong>Build muscle memory:</strong><br>
+                            Naturally memorise any word, any text through repetition.
+                        </li>
+                        <li>
+                            <strong>Learn any language:</strong><br>
+                            Custom text. Listen and write. Support for hundreds of languages.
+                        </li>
+                        <li>
+                            <strong>Completely free:</strong><br>
+                            No subscription. No registration. Open source and processed locally.
+                        </li>
+                    </ul>
+                </section>
+            </details>
+
+            <footer class="sidebar-footer">
+                <p>© <span id="year">2025</span> Jin Ziyang / Type Again</p>
+            </footer>
+        </aside>
+
+        <main>
+            <div id="main-top">
+                <div class="hint-row">
+                    <ul class="hint-list">
+                        <li>Wrong keys are blocked 🔽</li>
+                        <li>Enter = Next (if finished) 🔽</li>
+                    </ul>
+                </div>
+                <div id="interactive-area">
+                    <div id="autopilot-container">
+                        <button id="autopilot-btn" class="icon-btn" type="button" aria-label="Start Autopilot">
+                            <svg class="icon icon-play" xmlns="http://www.w3.org/2000/svg" height="24px"
+                                viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                                <title>Autopilot</title>
+                                <path
+                                    d="m380-300 280-180-280-180v360ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+                            </svg>
+                            <svg class="icon icon-stop hidden" xmlns="http://www.w3.org/2000/svg" height="24px"
+                                viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                                <title>Stop</title>
+                                <path
+                                    d="M320-320h320v-320H320v320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="teleprompter" aria-live="polite">
+                        <div id="lines-wrapper" role="list"></div>
+                    </div>
+
+                    <div id="input-column">
+                        <div class="input-group">
+                            <div class="input-row">
+                                <input type="text" id="input" class="tele-input" placeholder="Start typing..."
+                                    autocomplete="off" autocapitalize="none" spellcheck="false">
+                                <button id="next-btn" class="tele-next" type="button">⏎</button>
+                            </div>
+                            <div id="result" aria-live="polite"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="main-bottom">
+                <details>
+                    <summary>Standard Finger Placement</summary>
+                    <figure>
+                        <picture>
+                            <source srcset="images/keyboard-d.svg" media="(prefers-color-scheme: dark)">
+                            <source srcset="images/keyboard-l.svg" media="(prefers-color-scheme: light)">
+                            <img src="images/keyboard-d.svg"
+                                alt="Standard touch typing finger placement on a QWERTY keyboard">
+                        </picture>
+                        <figcaption>
+                            <span class="caption-dark">
+                                Keys are shaded from dark to light, moving from the outside fingers toward the center.
+                            </span>
+                            <span class="caption-light">
+                                Keys are shaded from light to dark, moving from the outside fingers toward the center.
+                            </span>
+                        </figcaption>
+                    </figure>
+                </details>
+            </div>
+        </main>
+
+        <aside id="right-sidebar">
+            <h2>Text Sources</h2>
+
+            <div id="preset-section" class="sidebar-main-section">
+                <h3 class="section-title">
+                    Preset<span class="title-annotation">learn English words in context</span>
+                </h3>
+
+                <div id="preset-sources-list">
+                </div>
+            </div>
+
+            <div id="custom-section" class="sidebar-main-section">
+                <h3 class="section-title">
+                    Custom<span class="title-annotation">auto-split by line/sentence</span>
+                </h3>
+
+                <div class="custom-subsection">
+                    <div id="file-controls">
+                        <button id="open-folder-btn" class="file-button" type="button">Open Folder</button>
+                        <button id="choose-files-btn" class="file-button" type="button">Choose Files</button>
+                        <input type="file" id="import-input" multiple hidden>
+                    </div>
+                    <div id="custom-sources-list">
+                    </div>
+                </div>
+
+                <div class="custom-subsection">
+                    <textarea id="custom-text" placeholder="Or paste text here..."></textarea>
+                    <div id="custom-controls">
+                        <button id="load-btn" type="button">Load</button>
+                        <button id="export-btn" type="button">Export</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="language-selector-container">
+                <label for="lang-input">Current Language</label>
+                <input list="lang-list" id="lang-input" placeholder="Type to search...">
+                <datalist id="lang-list"></datalist>
+            </div>
+        </aside>
+    </div>
+
+    <div id="overlay-backdrop"></div>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+
+</html>
