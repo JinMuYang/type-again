@@ -1,5 +1,14 @@
-import { franc, francAll } from 'https://esm.sh/franc@6?bundle';
-import langs from 'https://esm.sh/langs@2';
+let francAll = null;
+let langs = null;
+
+// Attempt to load libraries asynchronously without blocking the app
+import('https://esm.sh/franc@6.2.0?bundle')
+    .then(module => { francAll = module.francAll; })
+    .catch(err => console.warn('franc failed to load from esm.sh:', err));
+
+import('https://esm.sh/langs@2.0.0')
+    .then(module => { langs = module.default; }) // 'langs' is a default export
+    .catch(err => console.warn('langs failed to load from esm.sh:', err));
 
 const FADE_DELAY_MS = 800;
 
@@ -28,22 +37,22 @@ const RTL_LANGS = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi', 'dv'];
 // (Arabic, Hebrew, Persian, Urdu, Pashto, Sindhi, Yiddish, Divehi)
 
 // Regex Markers
-const RE_ARABIC = /[\p{Script=Arabic}]/u;
-const RE_HEBREW = /[\p{Script=Hebrew}]/u;
-const RE_HAN = /[\p{Script=Han}]/u;
-const RE_HIRAGANA = /[\p{Script=Hiragana}]/u;
-const RE_KATAKANA = /[\p{Script=Katakana}]/u;
-const RE_HANGUL = /[\p{Script=Hangul}]/u;
-const RE_DEVANAGARI = /[\p{Script=Devanagari}]/u;
-const RE_BENGALI = /[\p{Script=Bengali}]/u;
-const RE_THAI = /[\p{Script=Thai}]/u;
-const RE_KHMER = /[\p{Script=Khmer}]/u;
-const RE_LAO = /[\p{Script=Lao}]/u;
-const RE_MYANMAR = /[\p{Script=Brahmi}|\p{Script=Myanmar}]/u; // rough
-const RE_CYRILLIC = /[\p{Script=Cyrillic}]/u;
-const RE_ARMENIAN = /[\p{Script=Armenian}]/u;
-const RE_ETHIOPIC = /[\p{Script=Ethiopic}]/u;
-const RE_GEORGIAN = /[\p{Script=Georgian}]/u;
+const RE_ARABIC = /\p{Script=Arabic}/u;
+const RE_HEBREW = /\p{Script=Hebrew}/u;
+const RE_HAN = /\p{Script=Han}/u;
+const RE_HIRAGANA = /\p{Script=Hiragana}/u;
+const RE_KATAKANA = /\p{Script=Katakana}/u;
+const RE_HANGUL = /\p{Script=Hangul}/u;
+const RE_DEVANAGARI = /\p{Script=Devanagari}/u;
+const RE_BENGALI = /\p{Script=Bengali}/u;
+const RE_THAI = /\p{Script=Thai}/u;
+const RE_KHMER = /\p{Script=Khmer}/u;
+const RE_LAO = /\p{Script=Lao}/u;
+const RE_MYANMAR = /\p{Script=Myanmar}/u;
+const RE_CYRILLIC = /\p{Script=Cyrillic}/u;
+const RE_ARMENIAN = /\p{Script=Armenian}/u;
+const RE_ETHIOPIC = /\p{Script=Ethiopic}/u;
+const RE_GEORGIAN = /\p{Script=Georgian}/u;
 // Arabic-script finer markers
 const RE_PERSIAN_MARKERS = /[\u067E\u0686\u0698\u06AF\u06A9\u06CC\u06C0\u06BE]/u; // پ چ ژ گ ک ی ...
 const RE_URDU_MARKERS = /[\u0679\u0688\u06C1\u06BE\u06BA\u06D2\u06D3\u06C0\u0681]/u; // Urdu-specific shapes
@@ -57,6 +66,15 @@ const ABBR_TITLES = /^(?:Mr|Mrs|Ms|Miss|Dr|Prof|Rev|Sr|Jr|St|Capt|Col|Gen|Lt|Sgt
 const EXTENSION_LIST = ['bat', 'c', 'cfg', 'conf', 'cpp', 'cs', 'css', 'csv', 'go', 'h', 'hpp', 'html', 'ini', 'java', 'js', 'json', 'jsx', 'kt', 'log', 'lua', 'markdown', 'md', 'php', 'pl', 'ps1', 'py', 'rb', 'rs', 'sh', 'sql', 'srt', 'swift', 'text', 'toml', 'ts', 'tsv', 'tsx', 'txt', 'xml', 'yaml', 'yml'];
 const ALLOWED_EXTS = new RegExp(`\\.(${EXTENSION_LIST.join('|')})$`, 'i');
 const ACCEPT_ATTR_STRING = EXTENSION_LIST.map(ext => '.' + ext).join(',') + ',text/plain';
+// Mistyping one of these doesn't cost the whole word.
+const REVOKE_EXEMPT = [' ', '—', '_', '/', '.', ',', ';', ':', '!', '?', '"', "'", '(', ')', '[', ']'];
+
+// Reduces an accented letter to its base form (é -> e, ñ -> n) via Unicode
+// decomposition. Only folds precomposed base+diacritic pairs; letters that
+// are independently encoded (ø, ß, ı, æ, ð...) pass through unchanged.
+function stripDiacritics(ch) {
+    return ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
 // App state
 let lines = [];
@@ -90,7 +108,7 @@ const stopIcon = autopilotBtn.querySelector('.icon-stop');
 const presetSourcesList = document.getElementById('preset-sources-list');
 const customSourcesList = document.getElementById('custom-sources-list');
 const openFolderBtn = document.getElementById('open-folder-btn');
-const chooseFilesBtn = document.getElementById('choose-files-btn');
+const chooseFileBtn = document.getElementById('choose-file-btn');
 const importInput = document.getElementById('import-input');
 const textarea = document.getElementById('custom-text');
 const loadBtn = document.getElementById('load-btn');
@@ -116,6 +134,8 @@ function closeAllSidebars() {
     leftSidebar.classList.remove('is-overlay-visible');
     rightSidebar.classList.remove('is-overlay-visible');
     backdrop.classList.remove('is-visible');
+    leftToggleBtn.setAttribute('aria-expanded', 'false');
+    rightToggleBtn.setAttribute('aria-expanded', 'false');
 }
 
 leftToggleBtn.addEventListener('click', () => {
@@ -124,6 +144,8 @@ leftToggleBtn.addEventListener('click', () => {
     if (!isVisible) {
         leftSidebar.classList.add('is-overlay-visible');
         backdrop.classList.add('is-visible');
+        leftToggleBtn.setAttribute('aria-expanded', 'true');
+        leftSidebar.focus({ preventScroll: true });
     }
 });
 
@@ -133,11 +155,21 @@ rightToggleBtn.addEventListener('click', () => {
     if (!isVisible) {
         rightSidebar.classList.add('is-overlay-visible');
         backdrop.classList.add('is-visible');
+        rightToggleBtn.setAttribute('aria-expanded', 'true');
+        rightSidebar.focus({ preventScroll: true });
     }
 });
 
-// Clicking the backdrop closes any open sidebar
-backdrop.addEventListener('click', closeAllSidebars);
+// Backdrop click or Escape closes the open sidebar and returns focus to its toggle
+function closeAndRestoreFocus() {
+    const opener = leftSidebar.classList.contains('is-overlay-visible') ? leftToggleBtn : rightToggleBtn;
+    closeAllSidebars();
+    opener.focus({ preventScroll: true });
+}
+backdrop.addEventListener('click', closeAndRestoreFocus);
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && backdrop.classList.contains('is-visible')) closeAndRestoreFocus();
+});
 
 // Also close sidebars if the user resizes back to desktop view
 window.addEventListener('resize', debounce(() => {
@@ -169,6 +201,10 @@ function checkSpeechSynthesis() {
     }
 }
 
+function stopSpeech() {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
 function disableSpeechFeatures(title) {
     dictationCheckbox.disabled = true;
     dictationCheckbox.parentElement.classList.add('disabled-feature');
@@ -185,133 +221,103 @@ function enableSpeechFeatures() {
     autopilotBtn.disabled = false;
     autopilotContainer.classList.remove('disabled-feature');
     autopilotContainer.title = '';
-    autopilotContainer.style.display = 'flex';
 }
 
-speechSynthesis.onvoiceschanged = checkSpeechSynthesis;
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = checkSpeechSynthesis;
 checkSpeechSynthesis(); // Initial check on load
 
 // --- SEARCHABLE LANGUAGE SELECTOR ---
+const CLDR_URL = 'https://cdn.jsdelivr.net/npm/cldr-localenames-full@48.2.0/main/en/languages.json';
+
 async function populateLangSelector() {
     const dataList = document.getElementById('lang-list');
 
-    // This prevents the "stuck" state if the CDN is blocked.
-    const fetchWithTimeout = (url, ms) => {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), ms);
-        return fetch(url, { signal: controller.signal })
-            .then(r => { clearTimeout(id); return r; })
-            .catch(err => { clearTimeout(id); throw err; });
-    };
-
-    // Canonicalize the browser locale and prefer primary subtag first
     let browserLocale = navigator.language || 'en';
     try {
-        // Normalizes "en-us" -> "en-US", etc.
         browserLocale = Intl.getCanonicalLocales(browserLocale)[0] || browserLocale;
-    } catch (err) { } // Ignore errors for invalid/unknown locales
-    const primaryLocale = (browserLocale.split('-')[0]) || 'en';
+    } catch (err) { }
 
-    // PRIORITIZATION FIX: 
-    // 1. Full/Specific (e.g., 'en-GB', 'zh-Hant')
-    // 2. Primary/Generic (e.g., 'en', 'zh')
-    // 3. 'en' (Final safety net for network fetch)
-    // Set removes duplicates (e.g. if browserLocale is just 'en')
-    const tries = [...new Set([browserLocale, primaryLocale, 'en'])];
-
-    const version = '45.0.0';
-    const base = pkgLocale => `https://cdn.jsdelivr.net/npm/cldr-localenames-modern@${version}/main/${pkgLocale}/languages.json`;
-
-    let languages = null;
-    let loadedLocale = 'en'; // Used to sort the list correctly later
-
-    for (const t of tries) {
+    // The tag list still has to come from CLDR — there's no browser API that enumerates
+    // language codes. Try the live, actively-maintained package first, capped at 3s;
+    // if the CDN is unreachable, blocked, or slow, fall back to the vendored copy of
+    // the same file, served same-origin.
+    let codes = null;
+    try {
+        const r = await fetch(CLDR_URL, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        codes = Object.keys((await r.json()).main.en.localeDisplayNames.languages);
+    } catch (err) {
+        console.warn('CLDR CDN unreachable, using local languages.json fallback.', err);
         try {
-            const url = base(t);
-            const r = await fetchWithTimeout(url, 1500);
-
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const json = await r.json();
-            const container = json.main && json.main[t] && json.main[t].localeDisplayNames;
-            if (container && container.languages) {
-                languages = container.languages;
-                loadedLocale = t;
-                break;
-            }
-        } catch (err) {
-            console.warn(`CDN fetch failed for '${t}':`, err);
+            const r = await fetch('/languages.json');
+            if (r.ok) codes = Object.keys((await r.json()).main.en.localeDisplayNames.languages);
+        } catch (err2) {
+            console.error('Local languages.json fallback also failed.', err2);
         }
     }
+    if (!codes) return; // selector stays empty; the rest of the app still works
 
-    // If all network attempts failed, load the local raw 'en' file.
-    if (!languages) {
-        console.log('Network unreachable. Falling back to local languages.json');
-        try {
-            const r = await fetch('languages.json');
-            if (r.ok) {
-                const json = await r.json();
-                // Since we know the local file is the 'en' version:
-                languages = json.main['en'].localeDisplayNames.languages;
-                loadedLocale = 'en';
-            }
-        } catch (err) {
-            console.error('Critical: Failed to load local fallback.', err);
+    codes = codes.filter(tag => !tag.includes('-alt-') && !tag.includes('-menu-'));
+
+    // Localized names come from the browser's own CLDR data — no network, no third party.
+    let displayNames = null;
+    try {
+        displayNames = new Intl.DisplayNames([browserLocale], { type: 'language', fallback: 'none' });
+    } catch (err) { } // practically never throws — supported in every major browser since 2021
+
+    const seen = new Set();
+    const entries = [];
+    for (const tag of codes) {
+        let label;
+        if (displayNames) {
+            try { label = displayNames.of(tag); } catch (err) { }
+            if (!label) continue; // browser has no name for this tag — skip it, keep the list clean
+        } else {
+            label = tag; // last-resort fallback if Intl.DisplayNames is ever unavailable
         }
+        if (label.length >= 60 || seen.has(label)) continue;
+        seen.add(label);
+        entries.push([tag, label]);
     }
+    entries.sort((a, b) => a[1].localeCompare(b[1], displayNames ? browserLocale : 'en', { sensitivity: 'base' }));
 
-    if (!languages) return;
-
-    const entries = Object.entries(languages).filter(([k, v]) => !k.includes('-alt-') && v && v.length < 60);
-    entries.sort((a, b) => a[1].localeCompare(b[1], loadedLocale, { sensitivity: 'base' }));
-
-    // Clear maps
     langCodeToName = {};
     langNameToCode = {};
     dataList.innerHTML = '';
-
     for (const [tag, label] of entries) {
-        // Populate maps for lookup
         langCodeToName[tag] = label;
         langNameToCode[label] = tag;
-
         const opt = document.createElement('option');
-        opt.value = label; // Display the NAME (e.g. "English")
-        // opt.setAttribute('data-code', tag); // Keep code in attribute if needed
+        opt.value = label;
         dataList.appendChild(opt);
     }
 }
 
 // --- SHARED FUNCTION ---
+// Apply language-dependent behaviour. Does NOT touch the text on screen.
 function applyLanguageSettings(code) {
     if (!code) return;
-
     currentContentLang = code;
-
-    // 1. Side Effects
     updateDirection();
     updateWordRevokeAvailability();
     checkSpeechSynthesis();
-
-    // 2. Re-segment text if applicable
-    if (lines.length > 0 && sequence.length > 0) {
-        const originalText = sequence.join('\n'); // Or activeSource logic
-        // Note: For perfect re-segmentation, ideally you'd reload the source file,
-        // but re-splitting the current sequence is a safe fallback.
-        lines = splitIntoLines(originalText);
-        resetAndRender();
-    }
 }
 
-// --- UPDATED HANDLER (User Selects Dropdown) ---
+// Re-split what's already loaded under the new language's rules.
+function resegmentCurrentText() {
+    if (!lines.length) return;
+    lines = splitIntoLines(lines.join('\n'));
+    resetAndRender();
+}
+
 function handleLanguageChange(nameValue) {
     const code = langNameToCode[nameValue];
-    if (code) {
-        applyLanguageSettings(code);
-    }
+    if (!code || code === currentContentLang) return;
+    applyLanguageSettings(code);
+    resegmentCurrentText();
 }
 
-// We use 'input' so it updates as soon as they click an option or type a valid name
-langInput.addEventListener('input', (e) => {
+langInput.addEventListener('change', (e) => {
     handleLanguageChange(e.target.value);
 });
 
@@ -360,29 +366,21 @@ function updateWordRevokeAvailability() {
     wordRevokeCheckbox.parentElement.title = !isWordRevokeEnabled ? 'Not available for non-spaced languages' : '';
 }
 
-// Sets the INPUT value by looking up the name
-function applyCldrKeyIfExists(cldrKey) {
-    // Find the fuzzy match if needed (e.g. 'zh' -> 'Chinese')
-    let matchKey = cldrKey;
+// Closest name we have for a code ('en-US' -> 'en' -> "English"), or ''.
+function langLabelFor(code) {
+    if (!code) return '';
+    if (langCodeToName[code]) return langCodeToName[code];
+    return langCodeToName[code.split('-')[0]] || '';
+}
 
-    // Try exact match in our map
-    if (!langCodeToName[matchKey]) {
-        // Try primary tag (e.g. en-US -> en)
-        const primary = cldrKey.split('-')[0];
-        if (langCodeToName[primary]) matchKey = primary;
-    }
+// Sets the visible selector text only. No side effects on typing state.
+function syncLangInputLabel(code) {
+    langInput.value = langLabelFor(code);
+}
 
-    if (langCodeToName[matchKey]) {
-        const name = langCodeToName[matchKey];
-        if (langInput.value !== name) {
-            langInput.value = name;
-            // Manually trigger update since we changed it via code
-            handleLanguageChange(name);
-        }
-    } else {
-        // Reset if unknown
-        langInput.value = '';
-    }
+function setDetectedLanguage(code) {
+    applyLanguageSettings(code);
+    syncLangInputLabel(code);
 }
 
 function resetLanguageSelector() {
@@ -395,29 +393,29 @@ function detectAndSetLanguage(text) {
     if (!trimmed) { resetLanguageSelector(); return; }
 
     // --- 1. SCRIPT HEURISTICS (Fast path for non-Latin scripts) ---
-    if (RE_HEBREW.test(trimmed)) { applyCldrKeyIfExists('he'); return; }
+    if (RE_HEBREW.test(trimmed)) { setDetectedLanguage('he'); return; }
     if (RE_ARABIC.test(trimmed)) {
-        if (RE_PERSIAN_MARKERS.test(trimmed)) { applyCldrKeyIfExists('fa'); return; }
-        if (RE_URDU_MARKERS.test(trimmed)) { applyCldrKeyIfExists('ur'); return; }
-        applyCldrKeyIfExists('ar'); return;
+        if (RE_PERSIAN_MARKERS.test(trimmed)) { setDetectedLanguage('fa'); return; }
+        if (RE_URDU_MARKERS.test(trimmed)) { setDetectedLanguage('ur'); return; }
+        setDetectedLanguage('ar'); return;
     }
     if (RE_HAN.test(trimmed) || RE_HIRAGANA.test(trimmed) || RE_KATAKANA.test(trimmed)) {
         if (RE_HIRAGANA.test(trimmed) || RE_KATAKANA.test(trimmed)) {
-            applyCldrKeyIfExists('ja'); return;
+            setDetectedLanguage('ja'); return;
         }
-        applyCldrKeyIfExists('zh'); return;
+        setDetectedLanguage('zh'); return;
     }
-    if (RE_HANGUL.test(trimmed)) { applyCldrKeyIfExists('ko'); return; }
-    if (RE_THAI.test(trimmed)) { applyCldrKeyIfExists('th'); return; }
-    if (RE_KHMER.test(trimmed)) { applyCldrKeyIfExists('km'); return; }
-    if (RE_LAO.test(trimmed)) { applyCldrKeyIfExists('lo'); return; }
-    if (RE_DEVANAGARI.test(trimmed)) { applyCldrKeyIfExists('hi'); return; }
-    if (RE_BENGALI.test(trimmed)) { applyCldrKeyIfExists('bn'); return; }
-    if (RE_MYANMAR.test(trimmed)) { applyCldrKeyIfExists('my'); return; }
-    if (RE_CYRILLIC.test(trimmed)) { applyCldrKeyIfExists('ru'); return; }
-    if (RE_ARMENIAN.test(trimmed)) { applyCldrKeyIfExists('hy'); return; }
-    if (RE_ETHIOPIC.test(trimmed)) { applyCldrKeyIfExists('am'); return; }
-    if (RE_GEORGIAN.test(trimmed)) { applyCldrKeyIfExists('ka'); return; }
+    if (RE_HANGUL.test(trimmed)) { setDetectedLanguage('ko'); return; }
+    if (RE_THAI.test(trimmed)) { setDetectedLanguage('th'); return; }
+    if (RE_KHMER.test(trimmed)) { setDetectedLanguage('km'); return; }
+    if (RE_LAO.test(trimmed)) { setDetectedLanguage('lo'); return; }
+    if (RE_DEVANAGARI.test(trimmed)) { setDetectedLanguage('hi'); return; }
+    if (RE_BENGALI.test(trimmed)) { setDetectedLanguage('bn'); return; }
+    if (RE_MYANMAR.test(trimmed)) { setDetectedLanguage('my'); return; }
+    if (RE_CYRILLIC.test(trimmed)) { setDetectedLanguage('ru'); return; }
+    if (RE_ARMENIAN.test(trimmed)) { setDetectedLanguage('hy'); return; }
+    if (RE_ETHIOPIC.test(trimmed)) { setDetectedLanguage('am'); return; }
+    if (RE_GEORGIAN.test(trimmed)) { setDetectedLanguage('ka'); return; }
 
     // --- 2. FAST ENGLISH CHECK ---
     // Franc struggles with short text (< 50 chars). 
@@ -426,7 +424,7 @@ function detectAndSetLanguage(text) {
     const RE_COMMON_ENGLISH = /\b(the|and|that|have|with|this|from|is|are|was|were)\b/i;
 
     if (RE_COMMON_ENGLISH.test(trimmed)) {
-        applyCldrKeyIfExists('en');
+        setDetectedLanguage('en');
         return;
     }
 
@@ -464,28 +462,8 @@ function detectAndSetLanguage(text) {
         if (langInfo && langInfo['1']) cldrKey = langInfo['1'];
     }
 
-    if (cldrKey) {
-        // 1. Always apply the settings logic based on the code
-        applyLanguageSettings(cldrKey);
-
-        // 2. Try to sync the visual dropdown if we know the name
-        // (This makes the UI reflect the detected language)
-        let matchKey = cldrKey;
-        if (!langCodeToName[matchKey]) {
-            const primary = cldrKey.split('-')[0];
-            if (langCodeToName[primary]) matchKey = primary;
-        }
-
-        if (langCodeToName[matchKey]) {
-            langInput.value = langCodeToName[matchKey];
-        } else {
-            // We detected a valid code (e.g. 'xx'), but don't have a name for it in our list.
-            // We still want the app to behave like language 'xx' (RTL, etc), even if the dropdown is blank.
-            langInput.value = '';
-        }
-    } else {
-        resetLanguageSelector();
-    }
+    if (cldrKey) setDetectedLanguage(cldrKey);
+    else resetLanguageSelector();
 }
 
 function normalizeQuotes(text) {
@@ -531,12 +509,12 @@ function splitIntoLines(text) {
 
         // 3. Merging Loop: Now only merges sentences WITHIN the same paragraph
         for (let i = 0; i < paraSegments.length - 1; i++) {
-            const currentLine = paraSegments[i];
-            const nextLine = paraSegments[i + 1]; // Grab the next line safely
+            const segment = paraSegments[i];
+            const nextSegment = paraSegments[i + 1];
 
-            if (!currentLine || !nextLine) continue;
+            if (!segment || !nextSegment) continue;
 
-            const words = currentLine.split(/\s+/);
+            const words = segment.split(/\s+/);
             const lastWord = words[words.length - 1];
 
             // Always merge known titles (e.g., "Mr." + "Smith")
@@ -545,12 +523,12 @@ function splitIntoLines(text) {
             // Only merge other things (like initials/acronyms) if the NEXT line 
             // starts with a LOWERCASE letter (indicating a broken sentence).
             // Note: We simply check if the first char is distinct from its uppercase version.
-            const firstChar = nextLine.charAt(0);
-            const iscontinuation = firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase();
+            const firstChar = nextSegment.charAt(0);
+            const isContinuation = firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase();
 
-            if (isTitle || iscontinuation) {
+            if (isTitle || isContinuation) {
                 // Merge with the next line
-                paraSegments[i] = paraSegments[i] + ' ' + nextLine;
+                paraSegments[i] = paraSegments[i] + ' ' + nextSegment;
                 paraSegments.splice(i + 1, 1);
                 i--; // Step back to re-check
             }
@@ -578,7 +556,7 @@ initCheckbox('auto-next', autoNextCheckbox, true);
 initCheckbox('shuffle', shuffleCheckbox, true);
 
 shuffleCheckbox.addEventListener('change', () => {
-    speechSynthesis.cancel();
+    stopSpeech();
     mode = shuffleCheckbox.checked ? 'shuffle' : 'ordered';
 
     // If we are currently on Essays, update the 'before' state
@@ -611,10 +589,9 @@ dictationCheckbox.addEventListener('change', () => {
 });
 
 const PRESET_SOURCES = {
-    'Essays': 'texts/essays.txt',
-    'Sentences': 'texts/sentences.txt',
-    'Phrases': 'texts/phrases.txt',
-    'Thesaurus': 'texts/thesaurus.txt'
+    'Essays': '/texts/Essays.txt',
+    'Sentences': '/texts/Sentences.txt',
+    'Thesaurus': '/texts/Thesaurus.txt'
 };
 let activeSourceElement = null;
 let localFileHandles = new Map();
@@ -622,7 +599,8 @@ let localFileHandles = new Map();
 function renderPresetSources() {
     presetSourcesList.innerHTML = '';
     for (const [name, path] of Object.entries(PRESET_SOURCES)) {
-        const item = document.createElement('div');
+        const item = document.createElement('button');
+        item.type = 'button';
         item.className = 'source-item';
         item.textContent = name;
         item.dataset.path = path;
@@ -632,13 +610,18 @@ function renderPresetSources() {
 }
 
 function setActiveSource(element) {
-    if (activeSourceElement) activeSourceElement.classList.remove('active');
+    if (activeSourceElement) {
+        activeSourceElement.classList.remove('active');
+        activeSourceElement.removeAttribute('aria-current');
+    }
     activeSourceElement = element;
-    activeSourceElement.classList.add('active');
+    if (!element) return;
+    element.classList.add('active');
+    element.setAttribute('aria-current', 'true');
 }
 
 async function handleSourceClick(element, type) {
-    speechSynthesis.cancel();
+    stopSpeech();
 
     const newSourceText = element ? element.textContent : null;
     const isSwitchingToEssays = newSourceText === 'Essays';
@@ -723,9 +706,17 @@ function updateCustomListPlaceholder() {
     }
 }
 
+function updateOpenFolderAvailability() {
+    if ('showDirectoryPicker' in window) return; // Chrome/Edge/Chromium: leave fully enabled
+    openFolderBtn.setAttribute('aria-disabled', 'true');
+    openFolderBtn.classList.add('disabled-feature');
+    openFolderBtn.title = 'Folder import needs a browser feature (File System Access) this browser doesn\'t support yet — try Chrome, Edge, or another Chromium-based browser.';
+}
+updateOpenFolderAvailability();
+
 openFolderBtn.addEventListener('click', async () => {
-    if (!('showDirectoryPicker' in window)) {
-        alert('Your browser does not support the File System Access API.');
+    if (openFolderBtn.getAttribute('aria-disabled') === 'true') {
+        alert(openFolderBtn.title);
         return;
     }
     try {
@@ -745,7 +736,8 @@ openFolderBtn.addEventListener('click', async () => {
         localFileHandles.clear(); // Clear the map before repopulating
 
         for (const entry of files) {
-            const item = document.createElement('div');
+            const item = document.createElement('button');
+            item.type = 'button';
             item.className = 'source-item';
             item.textContent = entry.name;
             customSourcesList.appendChild(item);
@@ -759,7 +751,7 @@ openFolderBtn.addEventListener('click', async () => {
     }
 });
 
-chooseFilesBtn.addEventListener('click', () => importInput.click());
+chooseFileBtn.addEventListener('click', () => importInput.click());
 
 importInput.addEventListener('change', (e) => {
     if (!e.target.files) return;
@@ -771,7 +763,8 @@ importInput.addEventListener('change', (e) => {
     // 2. Loop through the sorted array to add files
     for (const file of files) {
         if (ALLOWED_EXTS.test(file.name)) {
-            const item = document.createElement('div');
+            const item = document.createElement('button');
+            item.type = 'button';
             item.className = 'source-item';
             item.textContent = file.name;
             customSourcesList.appendChild(item);
@@ -819,7 +812,7 @@ exportBtn.addEventListener('click', () => {
     a.href = url;
     a.download = 'custom-text.txt';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
 function renderLoadingText(text) {
@@ -1000,7 +993,7 @@ function showFileCompletion() {
     if (isFileRunPerfect) {
         triggerConfetti();
         container.innerHTML = `
-                    <div class="completion-title" style="color: #ffb700;">🏆 Perfect Run!</div>
+                    <div class="completion-title trophy">🏆 Perfect Run!</div>
                     <div class="completion-subtitle">You typed every line without a single error.</div>
                     <div class="completion-action">Press Enter to restart</div>
                 `;
@@ -1008,7 +1001,7 @@ function showFileCompletion() {
     } else {
         container.innerHTML = `
                     <div class="completion-title">🏁 File Completed</div>
-                    <div class="completion-subtitle">Good job! Keep practicing to reach perfection.</div>
+                    <div class="completion-subtitle">Good job. Keep practising to reach perfection.</div>
                     <div class="completion-action">Press Enter to restart</div>
                 `;
         if (dictationCheckbox.checked) speakText('File completed.');
@@ -1110,8 +1103,8 @@ function newLine(force = false) {
 
 function checkCompletion() {
     if (position === currentLineChars.length) {
-        if (mistakes === 0) showResult('⭐ Perfect run!', 'perfect');
-        else showResult('✅ Correct, with corrections.', 'success');
+        if (mistakes === 0) showResult('⭐ Perfect', 'perfect');
+        else showResult('✅ Corrected.', 'corrected');
         if (autoNextCheckbox.checked) setTimeout(() => newLine(), 100);
         return true;
     }
@@ -1140,8 +1133,9 @@ function updateCaret() {
 }
 
 function flashWrong() {
+    inputElem.classList.remove('wrong');
+    void inputElem.offsetWidth; // force reflow so it restarts even on back-to-back mistakes
     inputElem.classList.add('wrong');
-    setTimeout(() => inputElem.classList.remove('wrong'), 140);
 }
 
 function handleInput() {
@@ -1165,9 +1159,8 @@ function handleInput() {
         // Only revoke if the *expected* character is NOT a separator.
         // If the user finished the word "Hello" and mistakes the upcoming "," for ".", 
         // we spare them. But if they mistake "l" for "k" inside "Hello", we revoke.
-        const separators = [' ', '—', '_', '/', '.', ',', ';', ':', '!', '?', '"', "'", '(', ')', '[', ']'];
         const expectedChar = currentLineChars[position];
-        const isSeparator = separators.includes(expectedChar);
+        const isSeparator = REVOKE_EXEMPT.includes(expectedChar);
 
         // Check if we should revoke the word
         if (wordRevokeCheckbox.checked && isWordRevokeEnabled && !isSeparator) revokeWord(); // This sets 'position' back to the start of the word
@@ -1208,6 +1201,12 @@ inputElem.addEventListener('beforeinput', (e) => {
     // 1. Ignore if autopilot is running or if composing IME text (e.g. Chinese/Japanese Pinyin)
     if (isAutopilot || isComposing) return;
 
+    // Line is already complete and the advance is pending — swallow the keystroke instead of scoring it against the next line.
+    if (position >= currentLineChars.length) {
+        e.preventDefault();
+        return;
+    }
+
     // 2. We only care about inserting text (not deleting, pasting, etc.)
     if (e.inputType === 'insertText' && e.data) {
 
@@ -1221,27 +1220,33 @@ inputElem.addEventListener('beforeinput', (e) => {
         const typedChar = e.data.normalize('NFC');
 
         // 4. CHECK: Is the typed character correct?
-        if (typedChar !== expectedChar) {
-            // STOP the character from being added to the DOM
+        if (typedChar === expectedChar) return; // Exact match — browser inserts normally.
+
+        if (typedChar === stripDiacritics(expectedChar)) {
+            // Accept the bare letter for an accented target. Still have to
+            // preventDefault and insert manually: letting the browser insert
+            // the literal keystroke would put the unaccented letter in the
+            // field, breaking every startsWith(inputValue) check downstream,
+            // which assumes the field is always an exact prefix of the target.
             e.preventDefault();
+            position = nextCharIndex + 1;
+            inputElem.value = currentLineChars.slice(0, position).join('');
+            updateCaret();
+            checkCompletion();
+            return;
+        }
 
-            // Trigger the visual error feedback
-            mistakes++;
-            flashWrong();
-            isFileRunPerfect = false;
+        // Mistake
+        e.preventDefault();
+        mistakes++;
+        flashWrong();
+        isFileRunPerfect = false;
 
-            // Handle "Revoke Word" penalty
-            // Since we blocked the char, we don't need to delete it.
-            // But if we still want the penalty of "losing the whole word":
-            const separators = [' ', '—', '_', '/', '.', ',', ';', ':', '!', '?', '"', "'", '(', ')', '[', ']'];
-            const isSeparator = separators.includes(expectedChar);
+        const isSeparator = REVOKE_EXEMPT.includes(expectedChar);
 
-            if (wordRevokeCheckbox.checked && isWordRevokeEnabled && !isSeparator) {
-                revokeWord();
-                // Since revokeWord() changes position/value, we must manually update the input value here
-                // because e.preventDefault() stopped the browser from touching it.
-                inputElem.value = currentLineChars.slice(0, position).join('');
-            }
+        if (wordRevokeCheckbox.checked && isWordRevokeEnabled && !isSeparator) {
+            revokeWord();
+            inputElem.value = currentLineChars.slice(0, position).join('');
         }
     }
 });
@@ -1267,7 +1272,8 @@ inputElem.addEventListener('keydown', (e) => {
     }
     if (e.key === 'Enter') {
         e.preventDefault();
-        if (checkCompletion() && !autoNextCheckbox.checked) newLine();
+        // checkCompletion() has already scheduled the advance when auto-next is on
+        if (!autoNextCheckbox.checked) newLine();
     }
 });
 
@@ -1310,23 +1316,32 @@ autopilotBtn.addEventListener('click', () => {
     } else {
         autopilotBtn.setAttribute('aria-label', 'Start Autopilot');
 
-        speechSynthesis.cancel();
+        stopSpeech();
         inputElem.focus();
     }
 });
 
 // Prevent ghost audio if the user closes or refreshes the tab while reading
-window.addEventListener('beforeunload', () => speechSynthesis.cancel());
+window.addEventListener('beforeunload', () => stopSpeech());
 
 window.addEventListener('load', async () => {
-    await populateLangSelector();
-    renderPresetSources();
-    const defaultSourceEl = presetSourcesList.querySelector('[data-path="texts/sentences.txt"]');
-    if (defaultSourceEl) handleSourceClick(defaultSourceEl, 'preset');
-    else renderTeleprompter(); // Render the initial empty message
-    updateCustomListPlaceholder();
+    // Nothing here needs the network.
+    document.getElementById('year').textContent = new Date().getFullYear();
     importInput.setAttribute('accept', ACCEPT_ATTR_STRING);
     const savedText = localStorage.getItem('saved_custom_text');
     if (savedText) textarea.value = savedText;
-    document.getElementById('year').textContent = new Date().getFullYear();
+
+    renderPresetSources();
+    updateCustomListPlaceholder();
+
+    // The CLDR name list only labels the selector, so let it land in the
+    // background instead of holding the first script behind 3 × 1500 ms.
+    const langListReady = populateLangSelector();
+
+    const defaultSourceEl = presetSourcesList.querySelector(`[data-path="${PRESET_SOURCES.Sentences}"]`);
+    if (defaultSourceEl) handleSourceClick(defaultSourceEl, 'preset');
+    else renderTeleprompter();
+
+    await langListReady;
+    if (!langInput.value) syncLangInputLabel(currentContentLang);
 });
